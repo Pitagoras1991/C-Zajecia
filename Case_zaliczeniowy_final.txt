@@ -1,0 +1,368 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace FinalCase
+{
+    abstract class Konto
+    {
+        public Konto()
+        {
+        }
+
+        public abstract void Wpłata(double suma);
+
+    }
+
+    class KontoKlienta : Konto
+    {
+        protected int IdKonta;
+        protected double StanKonta;
+
+        public KontoKlienta(int idk)
+        {
+            IdKonta = idk;
+            StanKonta = 0;
+        }
+
+        public override void Wpłata(double suma)
+        {
+            StanKonta += suma;
+            Console.Write("Na konto wplacono: " + suma + ". Stan konta wynosi: " + StanKonta);
+        }
+
+        public void OtwórzLokatę(double r, List<double> koszty)
+            // otwiera pojedynczą lokatę, użytkownik wpisuje kwotę z konsoli
+        {
+            Console.Write("Podaj kwotę lokaty: ");
+            double kwotaL = Convert.ToDouble(Console.ReadLine());
+            Lokata lokata = new Lokata(kwotaL, r);
+            double koszt = lokata.Odsetki();
+            Console.WriteLine("Odsetki z lokaty wynoszą " + koszt);
+            koszty.Add(koszt);
+
+        }
+        public void OtwórzLokatęTest(double[] sumalokaty, double r, List<double> koszty)
+            //otwiera lokaty na podstawie wsadu testowego (przekazywanie jako parametr)
+         {
+            foreach (double kwotaL in sumalokaty)
+            {
+                Lokata lokata = new Lokata(kwotaL, r);
+                double koszt = lokata.Odsetki();
+                Console.WriteLine("Odsetki z lokaty wynoszą " + koszt);
+                koszty.Add(koszt);
+            }
+            
+       }
+        public void WeźKredyt(double[] spłaty, double r, List<double> przychody, List<double> koszty)
+            //kwota kredytu jest wpisywana przez użytkownika w konsoli
+        {
+            Console.WriteLine("Podaj kwotę kredytu, jaki chcesz wziąć: ");
+            double kwotaK = Convert.ToDouble(Console.ReadLine());
+            Kredyt krkonsumpcyjny = new Kredyt(spłaty, kwotaK, r);
+            double przychód = krkonsumpcyjny.Przychód();
+            Console.WriteLine("Odsetki z kredytu wynoszą " + przychód);
+            przychody.Add(przychód);
+        }
+
+        public double WeźKredyt(double[] spłaty, double kwotaK, double r, List<double> przychody, List<double> koszty)
+            //kwoty kredytu są przekazywane jako parametr
+        {
+            Kredyt krkonsumpcyjny = new Kredyt(spłaty, kwotaK, r);
+            double przychód = krkonsumpcyjny.Przychód();
+            Console.WriteLine("Odsetki z kredytu wynoszą " + przychód);
+            przychody.Add(przychód);
+            return przychód;
+        }
+
+        public int DaneIdKonta
+        {
+            get { return IdKonta; } 
+        }
+
+        public string DaneStanKonta
+        {
+            get { return StanKonta.ToString(); } 
+           
+        }
+        
+    }
+    class Klient
+    {
+        string Imię;
+        string Nazwisko;
+        int Wiek;
+        Konto KontoKlienta;
+
+        public Klient(string imię, string nazwisko, int wiek, Konto kontoKlienta)
+        {
+            Imię = imię;
+            Nazwisko = nazwisko;
+            Wiek = wiek;
+            KontoKlienta = kontoKlienta;
+        }
+
+
+        public string OtwórzKonto(string IdKonta)
+        {
+            Console.Write("Witaj w banku VisualBank! Zaraz uzyskasz dostęp do konta. Podaj nowe hasło: ");
+            string haslo = Console.ReadLine();
+            Console.Write("Potwierdź hasło: ");
+            string hasloPowtorzone = Console.ReadLine();
+            while (haslo!= hasloPowtorzone)
+                {
+                Console.Write("Hasla nie pokrywają się. Zaczcynamy procedurę od początku. Wprowadź nowe hasło: ");
+                haslo = Console.ReadLine();
+                Console.Write("Potwierdź hasło");
+                hasloPowtorzone = Console.ReadLine();
+            }
+
+
+            Console.WriteLine("Czy chcesz wplacic pierwsza kwote? (tak / nie)");
+            string odpowiedź = Console.ReadLine();
+            if (odpowiedź == "tak")
+            {
+                Console.WriteLine("Podaj kwote");
+                double wpłata = Convert.ToDouble(Console.ReadLine());
+                KontoKlienta.Wpłata(wpłata);
+            }
+            else Console.WriteLine("Twój stan konta to 0. ");
+
+            return haslo;
+ 
+        }
+    }
+    class Kredyt
+    {
+        double[] Spłaty;
+        double KwotaK;
+        double R;
+        
+        public Kredyt(double[] spłaty, double kwotaK, double r)
+        {
+            Spłaty = spłaty;
+            KwotaK = kwotaK;
+            R = r;
+            
+        }
+       
+        // utwórz tablicę, gdzie wstawiane będą odsetki za kolejne miesiące
+        double[] odsetki = new double[12];
+
+        public int Odsetki(int i, double kwota0)
+        {
+            //Liczenie odsetek odbywa się za pomocą rekurencji. Kwota0 jest przekazywana, aby móc sprawdzić warunek defaultu
+            if (i >= 12) return 0; // 0 zostanie zwrócone, jeżeli nie było zdarzenia default typu 2
+            else
+                odsetki[i] = KwotaK * R/12;
+                KwotaK = KwotaK + odsetki[i] - Spłaty[i];
+                if (KwotaK > kwota0) //warunek defaultu nr 2
+            {
+                KwotaK = kwota0; // przypisujemy kwotę początkową kredytu, aby nie było problemów z liczeniem kosztów defaultu dla banku
+                return -1;
+            }
+                return Odsetki(i+1,kwota0);
+        }
+      
+        public bool CzyDefault1()
+            //sprawdza, czy trzy raty pod rząd są równe 0
+        {
+            bool czyDefault1 = false;
+            int j = 0;
+            while (j<10)
+            {
+                if(Spłaty[j] ==0 && Spłaty[j+1] == 0 && Spłaty[j+2] == 0)
+                {
+                    czyDefault1 = true;
+                    break;
+                }
+                    j++;
+            }
+            return czyDefault1;
+        }
+
+        public double Przychód()
+        {
+            bool default1 = CzyDefault1();
+            double sumaPrzychodow = 0;
+            if (default1 == true)
+            {
+                sumaPrzychodow = -0.05 * KwotaK;
+                Console.WriteLine("Zaszło zdarzenie typu default nr 1"); 
+            }
+            else
+            {
+                int default2 = Odsetki(0, KwotaK);
+
+                if (default2 == 0)
+                {
+                    // klient nie zdefaultował: liczymy sumę odsetek na kliencie
+                    sumaPrzychodow = odsetki.Sum(x => x);
+                }
+
+                else
+                {
+                    sumaPrzychodow = -0.05 * KwotaK;
+                    Console.WriteLine("Zaszło zdarzenie typu default nr 2"); 
+                }
+            }
+            return Math.Round(sumaPrzychodow,2);
+        }
+
+
+    }
+    class Lokata
+    {
+        double KwotaL;
+        double R;
+
+        public Lokata(double kwotaL, double r)
+        {
+            KwotaL = kwotaL;
+            R = r;
+        }
+
+        public double Odsetki()
+        {
+            
+            return Math.Round(R * KwotaL,2);
+
+        }
+
+
+    }
+
+    class KontoRozliczenioweBanku : Konto
+
+    {
+
+        List<double> Przychody; 
+        List<double> Koszty;
+
+        public KontoRozliczenioweBanku(List<double> przychody, List<double> koszty)
+        {
+            Przychody = przychody;
+            Koszty = koszty;
+        }
+
+
+        public override void Wpłata(double suma)
+        {
+            Console.Write("Zysk banku netto wynosi " + suma);
+        }
+
+        public double LiczZysk()
+        {
+            double zyskBrutto = Math.Round(Przychody.Sum() - Koszty.Sum(),2);
+            Console.WriteLine("Zysk brutto: " + zyskBrutto);
+            double zyskNetto = 0;
+            double podatki;
+            if (zyskBrutto > 0)
+            {
+                podatki = Math.Round(0.19 * zyskBrutto,2);
+                //Console.WriteLine(podatki);
+                zyskNetto = zyskBrutto - podatki;
+ 
+            }
+            Wpłata(zyskNetto);
+            return zyskNetto;
+        }
+
+
+    }
+
+ 
+
+    class Wykonaj
+    {
+        static void Main(string[] args)
+        {
+            List<double> przychody = new List<double> { };
+            List<double> koszty = new List<double> { };
+            // Za każdym razem przekazujemy listę przychodów i kosztów - jest ona sukcesywnie uzupełniana metodą Add
+
+            //TESTY
+            //Lokaty:
+            KontoKlienta konto1 = new KontoKlienta(1);
+            Klient klient1 = new Klient("Anna", "Kowalska", 30, konto1);
+            double[] spłaty1 = { 700, 1000, 0, 1000, 0, 1000, 500, 950, 1550, 1000, 1100, 1100};
+            konto1.WeźKredyt(spłaty1, 10000, 0.12, przychody, koszty);
+
+            KontoKlienta konto2 = new KontoKlienta(2);
+            Klient klient2 = new Klient("Jan", "Nowak", 30, konto2);
+            double[] spłaty2 = { 10, 20, 10, 500, 500, 200, 500, 450, 600, 210, 500, 500 };
+            konto2.WeźKredyt(spłaty2, 5000, 0.12, przychody, koszty);
+
+            KontoKlienta konto3 = new KontoKlienta(3);
+            Klient klient3 = new Klient("Marian", "Wiśniewski", 40, konto3);
+            double[] spłaty3 = { 5000, 6000, 7000, 1000, 8000, 5500, 4500, 10000, 10000, 5000, 5000, 3000 };
+            konto3.WeźKredyt(spłaty3, 70000, 0.12, przychody, koszty);
+
+            KontoKlienta konto4 = new KontoKlienta(4);
+            Klient klient4 = new Klient("Radosław", "Malinowski", 50, konto4);
+            double[] spłaty4 = { 7000, 6000, 0, 0, 0, 5500, 4500, 10000, 10000, 5000, 5500, 5500 };
+            konto4.WeźKredyt(spłaty4, 60000, 0.12, przychody, koszty);
+
+            KontoKlienta konto5 = new KontoKlienta(5);
+            Klient klient5 = new Klient("Joanna", "Perlakowska", 60, konto5);
+            double[] spłaty5 = { 1500, 1600, 100, 2000, 1000, 2500, 1500, 1000, 1000, 900, 900, 1000 };
+            konto5.WeźKredyt(spłaty5, 15000, 0.12, przychody, koszty);
+
+            KontoKlienta konto6 = new KontoKlienta(6);
+            Klient klient6 = new Klient("Katarzyna", "Siewicz", 70, konto6);
+            double[] spłaty6 = { 1000, 2000, 2500, 3000, 500, 1500, 2500, 2000, 1400, 1600, 1000, 1000 };
+            konto6.WeźKredyt(spłaty6, 20000, 0.12, przychody, koszty);
+
+            KontoKlienta konto7 = new KontoKlienta(7);
+            Klient klient7 = new Klient("Michał", "Michałowicz", 35, konto7);
+            double[] spłaty7 = { 500, 900, 1500, 300, 0, 1500, 300, 700, 400, 400, 0, 1500 };
+            konto7.WeźKredyt(spłaty7, 8000, 0.12, przychody, koszty);
+
+            KontoKlienta konto8 = new KontoKlienta(8);
+            Klient klient8 = new Klient("Agata", "Zawiślak", 45, konto8);
+            double[] spłaty8 = { 1000, 1500, 2000, 0, 500, 0, 2500, 0, 0, 0, 0, 0 };
+            konto8.WeźKredyt(spłaty8, 10000, 0.12, przychody, koszty);
+
+            KontoKlienta konto9 = new KontoKlienta(9);
+            Klient klient9 = new Klient("Lena", "Wojtyłowicz", 34, konto9);
+            double[] spłaty9 = { 200, 400, 500, 300, 500, 600, 700, 500, 300, 400, 300, 300 };
+            konto9.WeźKredyt(spłaty9, 5000, 0.12, przychody, koszty);
+
+            KontoKlienta konto10 = new KontoKlienta(10);
+            Klient klient10 = new Klient("Jakub", "Jakimowicz", 55, konto10);
+            double[] spłaty10 = { 200, 0, 150, 250, 300, 200, 300, 100, 100, 0, 300, 100 };
+            konto10.WeźKredyt(spłaty10, 2000, 0.12, przychody, koszty);
+
+            double[] lokaty = { 1000, 1500, 500, 1000, 5000, 7000, 5000, 4000, 6000, 5500, 10000, 8000,1000,2500, 6000 };
+            konto10.OtwórzLokatęTest(lokaty, 0.03, koszty);
+
+            Console.WriteLine("Suma kosztow " + koszty.Sum());
+            Console.WriteLine("Suma przychodów " + przychody.Sum());
+            KontoRozliczenioweBanku rozliczenie = new KontoRozliczenioweBanku(przychody, koszty);
+            rozliczenie.LiczZysk();
+
+
+
+            //Poprawnie działa też tworzenie klienta i sprawdzanie hasła
+            Console.WriteLine("");
+            Console.WriteLine("Test otwarcia konta");
+            KontoKlienta konto = new KontoKlienta(1000);
+            Klient klient = new Klient("Karolina", "Stelmaszek", 20, konto);
+            klient.OtwórzKonto(konto.DaneIdKonta.ToString());
+
+            //Moje testy
+            //klient.OtwórzKonto(konto.DaneIdKonta.ToString());
+            //double[] raty = {700, 1000, 1000,1000,1000,1000,1000,1000,1000,1000,1000,1000 };
+            //konto.WeźKredyt(raty, 0.09,przychody, koszty);
+            //konto.WeźKredyt(raty, 0.09, przychody, koszty);
+            ////przychody.Add(100);
+            //Console.WriteLine(przychody.Sum());
+            ////konto.OtwórzLokatę(0.03);
+            //double[] lokaty = { 100, 200 };
+            //konto.OtwórzLokatęTest(lokaty, 0.03, koszty);
+            //Console.WriteLine("Suma kosztow " + koszty.Sum());
+            //KontoRozliczenioweBanku rozliczenie = new KontoRozliczenioweBanku(przychody, koszty);
+            //rozliczenie.LiczZysk();
+        }
+    }
+}
